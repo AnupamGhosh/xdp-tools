@@ -777,9 +777,19 @@ out:
 	return err ?: map_fd;
 }
 
-static const struct ipopt {
+// static const struct ipopt {
+// 	unsigned int mode;
+// 	struct ip_addr addr;
+// 	bool print_status;
+// 	bool remove;
+// } defaults_ip = {
+// 	.mode = MAP_FLAG_DST,
+// };
+
+// DEFINE_COMMAND(_name, _doc) -> DEFINE_COMMAND_NAME(textify(_name), _name, _doc) -> .default_cfg = &defaults_##_func
+static const struct cidropt {
 	unsigned int mode;
-	struct ip_addr addr;
+	struct ip_cidr addr;
 	bool print_status;
 	bool remove;
 } defaults_ip = {
@@ -787,65 +797,121 @@ static const struct ipopt {
 };
 
 static struct prog_option ip_options[] = {
-	DEFINE_OPTION("addr", OPT_IPADDR, struct ipopt, addr,
+	DEFINE_OPTION("addr", OPT_CIDRADDR, struct cidropt, addr,
 		      .positional = true,
 		      .metavar = "<addr>",
 		      .required = true,
 		      .help = "Address to add or remove"),
-	DEFINE_OPTION("remove", OPT_BOOL, struct ipopt, remove,
+	DEFINE_OPTION("remove", OPT_BOOL, struct cidropt, remove,
 		      .short_opt = 'r',
 		      .help = "Remove address instead of adding"),
-	DEFINE_OPTION("mode", OPT_FLAGS, struct ipopt, mode,
+	DEFINE_OPTION("mode", OPT_FLAGS, struct cidropt, mode,
 		      .short_opt = 'm',
 		      .metavar = "<mode>",
 		      .typearg = map_flags_srcdst,
 		      .help = "Filter mode; default dst"),
-	DEFINE_OPTION("status", OPT_BOOL, struct ipopt, print_status,
+	DEFINE_OPTION("status", OPT_BOOL, struct cidropt, print_status,
 		      .short_opt = 's',
 		      .help = "Print status of filtered addresses after changing"),
 	END_OPTIONS
 };
 
+// static int do_ip(const void *cfg, const char *pin_root_path)
+// {
+// 	int map_fd = -1, err = EXIT_SUCCESS, lock_fd;
+// 	char modestr[100], addrstr[100];
+// 	const struct ipopt *opt = cfg;
+// 	struct ip_addr addr = opt->addr;
+// 	bool v6;
+
+// 	lock_fd = prog_lock_acquire(pin_root_path);
+// 	if (lock_fd < 0)
+// 		return lock_fd;
+
+// 	print_flags(modestr, sizeof(modestr), map_flags_srcdst, opt->mode);
+// 	print_addr(addrstr, sizeof(addrstr), &opt->addr);
+// 	pr_debug("%s addr %s mode %s\n", opt->remove ? "Removing" : "Adding",
+// 		 addrstr, modestr);
+
+// 	v6 = (opt->addr.af == AF_INET6);
+
+// 	map_fd = __do_address(pin_root_path,
+// 			      v6 ? textify(MAP_NAME_IPV6) : textify(MAP_NAME_IPV4),
+// 			      v6 ? "ipv6" : "ipv4",
+// 			      &addr.addr, opt->remove, opt->mode);
+// 	if (map_fd < 0) {
+// 		err = map_fd;
+// 		goto out;
+// 	}
+
+// 	if (opt->print_status) {
+// 		err = print_ips();
+// 		if (err)
+// 			goto out;
+// 	}
+
+// out:
+// 	if (map_fd >= 0)
+// 		close(map_fd);
+// 	prog_lock_release(lock_fd);
+// 	return err;
+// }
+
+// DEFINE_COMMAND(ipcidr .. -> do_ipcidr
 static int do_ip(const void *cfg, const char *pin_root_path)
 {
-	int map_fd = -1, err = EXIT_SUCCESS, lock_fd;
-	char modestr[100], addrstr[100];
-	const struct ipopt *opt = cfg;
-	struct ip_addr addr = opt->addr;
-	bool v6;
+	// print cfg to verify the flow
+	const struct cidropt *opt = cfg;
+	struct ip_cidr cidr = opt->addr;
+	__u8 mask = cidr.mask;
+	char addrstr[100];
+
+	print_addr(addrstr, sizeof(addrstr), &cidr.ip);
+	printf("%s addr %s/%d\n", opt->remove ? "Removing" : "Adding", addrstr, mask);
+	// printf("IP CIDR: %s/%d\n", inet_ntoa(addr.addr), mask);
+	// printf("mask is %d\n", mask);
+
+	int err = EXIT_SUCCESS, lock_fd;
+	// int map_fd = -1, err = EXIT_SUCCESS, lock_fd;
+// 	char modestr[100], addrstr[100];
+// 	const struct cidropt *opt = cfg;
+// 	struct ip_cidr addr = opt->addr;
+// 	__u8 mask = addr.mask;
+// 	bool v6;
 
 	lock_fd = prog_lock_acquire(pin_root_path);
 	if (lock_fd < 0)
 		return lock_fd;
 
-	print_flags(modestr, sizeof(modestr), map_flags_srcdst, opt->mode);
-	print_addr(addrstr, sizeof(addrstr), &opt->addr);
-	pr_debug("%s addr %s mode %s\n", opt->remove ? "Removing" : "Adding",
-		 addrstr, modestr);
+// 	print_flags(modestr, sizeof(modestr), map_flags_srcdst, opt->mode);
+// 	print_addr(addrstr, sizeof(addrstr), &opt->addr);
+// 	pr_debug("%s addr %s mode %s\n", opt->remove ? "Removing" : "Adding",
+// 		 addrstr, modestr);
 
-	v6 = (opt->addr.af == AF_INET6);
+// 	v6 = (opt->addr.af == AF_INET6);
 
-	map_fd = __do_address(pin_root_path,
-			      v6 ? textify(MAP_NAME_IPV6) : textify(MAP_NAME_IPV4),
-			      v6 ? "ipv6" : "ipv4",
-			      &addr.addr, opt->remove, opt->mode);
-	if (map_fd < 0) {
-		err = map_fd;
-		goto out;
-	}
+// 	map_fd = __do_address(pin_root_path,
+// 			      v6 ? textify(MAP_NAME_IPV6) : textify(MAP_NAME_IPV4),
+// 			      v6 ? "ipv6" : "ipv4",
+// 			      &addr.addr, opt->remove, opt->mode);
+// 	if (map_fd < 0) {
+// 		err = map_fd;
+// 		goto out;
+// 	}
 
-	if (opt->print_status) {
-		err = print_ips();
-		if (err)
-			goto out;
-	}
+// 	if (opt->print_status) {
+// 		err = print_ips();
+// 		if (err)
+// 			goto out;
+// 	}
 
-out:
-	if (map_fd >= 0)
-		close(map_fd);
+// out:
+// 	if (map_fd >= 0)
+// 		close(map_fd);
 	prog_lock_release(lock_fd);
 	return err;
 }
+
 
 int print_ethers(int map_fd)
 {
@@ -1092,7 +1158,7 @@ int do_help(__unused const void *cfg, __unused const char *pin_root_path)
 		"       load        - load xdp-filter on an interface\n"
 		"       unload      - unload xdp-filter from an interface\n"
 		"       port        - add a port to the filter list\n"
-		"       ip          - add an IP address to the filter list\n"
+		"       ip          - add an IP or CIDR address to the filter list\n"
 		"       ether       - add an Ethernet MAC address to the filter list\n"
 		"       status      - show current xdp-filter status\n"
 		"       poll        - poll statistics output\n"
@@ -1106,7 +1172,7 @@ static const struct prog_command cmds[] = {
 	DEFINE_COMMAND(load, "Load xdp-filter on an interface"),
 	DEFINE_COMMAND(unload, "Unload xdp-filter from an interface"),
 	DEFINE_COMMAND(port, "Add or remove ports from xdp-filter"),
-	DEFINE_COMMAND(ip, "Add or remove IP addresses from xdp-filter"),
+	DEFINE_COMMAND(ip, "Add or remove IP or CIDR addresses from xdp-filter"),
 	DEFINE_COMMAND(ether, "Add or remove MAC addresses from xdp-filter"),
 	DEFINE_COMMAND(poll, "Poll xdp-filter statistics"),
 	DEFINE_COMMAND_NODEF(status, "Show xdp-filter status"),
@@ -1118,7 +1184,7 @@ union all_opts {
 	struct loadopt load;
 	struct unloadopt unload;
 	struct portopt port;
-	struct ipopt ip;
+	struct cidropt cidr;
 	struct etheropt ether;
 	struct pollopt poll;
 };

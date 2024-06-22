@@ -295,6 +295,36 @@ static int handle_ipaddr(char *optarg, void *tgt, __unused struct prog_option *o
 	return 0;
 }
 
+static int handle_cidraddr(char *optarg, void *tgt, __unused struct prog_option *opt)
+{
+	struct ip_cidr *cidr = tgt;
+	char *slash;
+	int af, ret;
+
+	slash = strchr(optarg, '/');
+	if (slash == NULL) {
+		cidr->mask = 32;
+	} else {
+		*slash = '\0';
+		cidr->mask = atoi(slash + 1);
+	}
+
+	ret = handle_ipaddr(optarg, &cidr->ip, opt);
+	if (ret)
+		return ret;
+
+	af = cidr->ip.af;
+	if (af == AF_INET && cidr->mask > 32) {
+		pr_warn("Invalid CIDR address: %s\n", optarg);
+		return -EINVAL;
+	} else if (af == AF_INET6 && cidr->mask > 128) {
+		pr_warn("Invalid CIDR address: %s\n", optarg);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static const struct enum_val *find_enum(const struct enum_val *enum_vals,
 					const char *chr)
 {
@@ -366,6 +396,7 @@ static const struct opthandler {
 			 {handle_ifname},
 			 {handle_ifname_multi},
 			 {handle_ipaddr},
+			 {handle_cidraddr},
 			 {handle_enum},
 			 {handle_multistring}
 };

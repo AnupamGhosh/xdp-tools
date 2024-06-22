@@ -23,6 +23,7 @@ enum option_type {
 	OPT_IFNAME,
 	OPT_IFNAME_MULTI,
 	OPT_IPADDR,
+	OPT_CIDRADDR,
 	OPT_ENUM,
 	OPT_MULTISTRING,
 	__OPT_MAX
@@ -78,6 +79,11 @@ struct ip_addr {
 		struct in_addr addr4;
 		struct in6_addr addr6;
 	} addr;
+};
+
+struct ip_cidr {
+	struct ip_addr ip;
+	int mask;
 };
 
 struct mac_addr {
